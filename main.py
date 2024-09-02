@@ -61,7 +61,14 @@ def main():
 
     ""
     init_gl((10, 10))
-    gl_text_clip = glTextClip(window, vao, sys.argv[1], sys.argv[3], sys.argv[2])
+    gl_text_clip = glTextClip(
+        window,
+        vao,
+        sys.argv[1],
+        sys.argv[3],
+        sys.argv[2],
+        speech_box_margin=(10, 0, 10, 0),
+    )
     plt.show()
     glfw.show_window(window)
     while glfw.window_should_close(window) == glfw.FALSE:
