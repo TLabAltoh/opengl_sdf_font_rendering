@@ -47,6 +47,8 @@ out_color = vec4(alpha, alpha, alpha, alpha);
 ## Dependencies
 - [PyOpenGL](https://pypi.org/project/PyOpenGL/)
 - [glfw](https://pypi.org/project/glfw/)
+- [matplotlib](https://pypi.org/project/matplotlib/)
+- [numpy](https://pypi.org/project/numpy/)
 - [fonttools](https://pypi.org/project/fonttools/)
 - [skia-pathops](https://pypi.org/project/skia-pathops/)
 
