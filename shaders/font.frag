@@ -25,6 +25,16 @@ layout(std430, binding = 2)readonly buffer SEG_INDEX {
 
 uniform int segment_num;
 uniform vec4 bounds;
+uniform vec4 radius;
+uniform vec3 text_color;
+uniform vec3 speech_box_color;
+
+float sdRoundedBox(in vec2 p, in vec2 b, in vec4 r) {
+    r.xy = (p.x > 0.0) ? r.xy : r.zw;
+    r.x = (p.y > 0.0) ? r.x : r.y;
+    vec2 q = abs(p) - b + r.x;
+    return min(max(q.x, q.y), 0.0) + length(max(q, 0.0)) - r.x;
+}
 
 float dot2(vec2 v) {
     return dot(v, v);
@@ -115,12 +125,14 @@ float windingSign(vec2 p, vec2 a, vec2 b) {
 }
 
 void main() {
-    float dist = (bounds.w - bounds.y) + (bounds.z - bounds.x), tmp, winding = 1.0;
+    float text_dist = (bounds.w - bounds.y) + (bounds.z - bounds.x), tmp, winding = 1.0;
     int idx, seg_idx;
     
-    vec2 p;
-    p.x = (1.0 - uv.x) * bounds.x + uv.x * bounds.z;
-    p.y = (1.0 - uv.y) * bounds.y + uv.y * bounds.w;
+    vec2 bounds_size = vec2(bounds.z - bounds.x, bounds.w - bounds.y);
+    
+    vec2 text_sampling_pos;
+    text_sampling_pos.x = (1.0 - uv.x) * bounds.x + uv.x * bounds.z;
+    text_sampling_pos.y = (1.0 - uv.y) * bounds.y + uv.y * bounds.w;
     
     for(seg_idx = 0; seg_idx < segment_num; seg_idx ++ ) {
         segment seg = segments[seg_idx];
@@ -130,39 +142,47 @@ void main() {
             vec2 v2 = splines[idx + 2];
             
             if (cro(v1 - v2, v1 - v0) == 0.0) {
-                tmp = udSegment(p, v0, v2);
-                winding *= windingSign(p, v0, v2);
+                tmp = udSegment(text_sampling_pos, v0, v2);
+                winding *= windingSign(text_sampling_pos, v0, v2);
             } else {
-                tmp = sdBezier(p, v0, v1, v2);
+                tmp = sdBezier(text_sampling_pos, v0, v1, v2);
                 if ((tmp > 0.0) == (cro(v1 - v2, v1 - v0) < 0.0)) {
-                    winding *= windingSign(p, v0, v1);
-                    winding *= windingSign(p, v1, v2);
+                    winding *= windingSign(text_sampling_pos, v0, v1);
+                    winding *= windingSign(text_sampling_pos, v1, v2);
                 }
                 else {
-                    winding *= windingSign(p, v0, v2);
+                    winding *= windingSign(text_sampling_pos, v0, v2);
                 }
             }
             
-            dist = min(dist, abs(tmp));
+            text_dist = min(text_dist, abs(tmp));
         }
         
         for(idx = seg.line_s; idx < seg.line_e; idx += 2) {
             vec2 v0 = lines[idx + 0];
             vec2 v1 = lines[idx + 1];
             
-            tmp = udSegment(p, v0, v1);
+            tmp = udSegment(text_sampling_pos, v0, v1);
             
-            winding *= windingSign(p, v0, v1);
+            winding *= windingSign(text_sampling_pos, v0, v1);
             
-            dist = min(dist, abs(tmp));
+            text_dist = min(text_dist, abs(tmp));
         }
     }
     
     #define BLUR 0
     #define EXPAND 0
     
-    dist *= winding;
-    float delta = fwidth(dist) * 0.5;
-    float alpha = 1-smoothstep(-delta + EXPAND - BLUR, delta + EXPAND, dist);
-    out_color = vec4(alpha, alpha, alpha, alpha);
+    text_dist *= winding;
+    float text_delta = fwidth(text_dist) * 0.5;
+    float text_alpha = 1-smoothstep(-text_delta + EXPAND - BLUR, text_delta + EXPAND, text_dist);
+    vec4 out_text_color = vec4(text_color, 1) * text_alpha;
+    
+    vec2 speech_box_sampling_pos = (uv - 0.5) * bounds_size;
+    float speech_box_dist = sdRoundedBox(speech_box_sampling_pos, bounds_size * 0.5, radius);
+    float speech_box_delta = fwidth(speech_box_dist) * 0.5;
+    float speech_box_alpha = 1-smoothstep(-speech_box_delta, speech_box_delta, speech_box_dist);
+    vec4 out_speech_box_color = vec4(speech_box_color, 1) * speech_box_alpha * (1.0 - text_alpha);
+    
+    out_color = out_text_color + out_speech_box_color;
 }

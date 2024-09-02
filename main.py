@@ -1,4 +1,4 @@
-from glTextClip import glTextClip
+from glTextBox import glTextBox
 from OpenGL.GL import *
 from utils.glfw import deinit_glfw, init_glfw
 import matplotlib.pyplot as plt
@@ -61,18 +61,20 @@ def main():
 
     ""
     init_gl((10, 10))
-    gl_text_clip = glTextClip(
+    gl_text_box = glTextBox(
         window,
         vao,
         sys.argv[1],
         sys.argv[3],
         sys.argv[2],
         speech_box_margin=(10, 0, 10, 0),
+        # speech_box_color=(1, 0, 1),
+        # speech_box_radius=(20, 20, 20, 20),
     )
     plt.show()
     glfw.show_window(window)
     while glfw.window_should_close(window) == glfw.FALSE:
-        gl_text_clip.preview()
+        gl_text_box.preview()
         glfw.wait_events()
     deinit_gl()
     ""

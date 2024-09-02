@@ -13,7 +13,7 @@ import numpy as np
 import glfw
 
 
-class glTextClip:
+class glTextBox:
     def get_glyph(self, font: TTFont, char: str):
         glyph_set = font.getGlyphSet()
         cmap = font.getBestCmap()
@@ -222,6 +222,15 @@ class glTextClip:
     def update_speech_box_margin(self, speech_box_margin: list):
         self.speech_box_margin = speech_box_margin
 
+    def update_speech_box_radius(self, speech_box_radius: list):
+        self.speech_box_radius = speech_box_radius
+
+    def update_text_color(self, text_color: list):
+        self.text_color = text_color
+
+    def update_speech_box_color(self, speech_box_color: list):
+        self.speech_box_color = speech_box_color
+
     def __init__(
         self,
         window,
@@ -229,8 +238,11 @@ class glTextClip:
         font_path: str,
         font_size: int,
         text: str,
+        text_color=(1, 1, 1),
         speech_box_margin=(0, 0, 0, 0),
         speech_box=None,
+        speech_box_radius=(0, 0, 0, 0),
+        speech_box_color=(0, 0, 0),
     ):
         print("font_path:", font_path, "font_size:", font_size, "text:", text)
 
@@ -239,8 +251,11 @@ class glTextClip:
 
         self.update_font(font_path)
         self.update_text(font_size, text)
+        self.update_text_color(text_color)
         self.update_speech_box(speech_box)
         self.update_speech_box_margin(speech_box_margin)
+        self.update_speech_box_radius(speech_box_radius)
+        self.update_speech_box_color(speech_box_color)
         self.update_segment()
 
     def get_speech_box(self, use_total_bounds=False):
@@ -287,6 +302,11 @@ class glTextClip:
 
         self.id_bounds = glGetUniformLocation(program.handle, "bounds")
         self.id_segment_num = glGetUniformLocation(program.handle, "segment_num")
+        self.id_radius = glGetUniformLocation(program.handle, "radius")
+        self.id_text_color = glGetUniformLocation(program.handle, "text_color")
+        self.id_speech_box_color = glGetUniformLocation(
+            program.handle, "speech_box_color"
+        )
         self.buf_splines = glGenBuffers(1)
         self.buf_lines = glGenBuffers(1)
         self.buf_segments = glGenBuffers(1)
@@ -311,6 +331,25 @@ class glTextClip:
             speech_box[1],
             speech_box[2],
             speech_box[3],
+        )
+        glUniform4f(
+            self.id_radius,
+            self.speech_box_radius[0],
+            self.speech_box_radius[1],
+            self.speech_box_radius[2],
+            self.speech_box_radius[3],
+        )
+        glUniform3f(
+            self.id_text_color,
+            self.text_color[0],
+            self.text_color[1],
+            self.text_color[2],
+        )
+        glUniform3f(
+            self.id_speech_box_color,
+            self.speech_box_color[0],
+            self.speech_box_color[1],
+            self.speech_box_color[2],
         )
 
         if len(self.splines) > 0:
