@@ -2,10 +2,10 @@ from OpenGL.GL import *
 import ctypes
 import sys
 
+
 class Shader:
     def __init__(self):
         self.handle = glCreateProgram()
-
 
     def attach_shader(self, path, type):
         shader = glCreateShader(type)
@@ -17,7 +17,7 @@ class Shader:
             status = ctypes.c_uint(GL_UNSIGNED_INT)
             glGetShaderiv(shader, GL_COMPILE_STATUS, status)
             if not status:
-                print(glGetShaderInfoLog(shader).decode('utf-8'), file=sys.stderr)
+                print(glGetShaderInfoLog(shader).decode("utf-8"), file=sys.stderr)
                 glDeleteShader(shader)
                 return False
 
@@ -25,7 +25,7 @@ class Shader:
             glDeleteShader(shader)
             return True
 
-        print('[error] file is not found: ', path)
+        print("[error] file is not found: ", path)
         return False
 
     def link(self):
@@ -33,7 +33,7 @@ class Shader:
         status = ctypes.c_uint(GL_UNSIGNED_INT)
         glGetProgramiv(self.handle, GL_LINK_STATUS, status)
         if not status:
-            print(glGetProgramInfoLog(self.handle).decode('utf-8'), file=sys.stderr)
+            print(glGetProgramInfoLog(self.handle).decode("utf-8"), file=sys.stderr)
             return False
 
         return True

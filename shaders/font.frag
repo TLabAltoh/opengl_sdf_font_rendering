@@ -158,8 +158,8 @@ void main() {
         }
     }
     
-    #define BLUR 0
-    #define EXPAND 0
+    #define BLUR 100
+    #define EXPAND 50
     
     dist *= winding;
     float delta = fwidth(dist) * 0.5;
