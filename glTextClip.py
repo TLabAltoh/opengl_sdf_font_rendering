@@ -42,6 +42,10 @@ class glTextClip:
         line_width = 0
         line_height = hhea.ascent - hhea.descent + hhea.lineGap
 
+        upper_expand = hhea.ascent
+        lower_expand = hhea.descent
+        left_expand = 0
+
         self.points = []
         self.splines = []
         self.lines = []
@@ -57,6 +61,8 @@ class glTextClip:
                 line_width = 0
                 offset[1] -= line_height
                 total_bounds[1] -= line_height
+                # upper_expand is decided here
+                lower_expand = hhea.descent
                 continue
             # fmt: on
 
@@ -75,6 +81,9 @@ class glTextClip:
             line_width += glyph.width
             total_bounds[2] = max(line_width, total_bounds[2])
 
+            if offset[0] == 0:
+                left_expand = min(left_expand, glyph.lsb)
+
             recording_pen = RecordingPen()
             bounds_pen = BoundsPen(font.getGlyphSet())
 
@@ -83,6 +92,9 @@ class glTextClip:
 
             bounds = bounds_pen.bounds
             print("bound:", bounds)
+
+            upper_expand = max(upper_expand, bounds[3])
+            lower_expand = min(lower_expand, bounds[1])
 
             for segment in recording_pen.value:
                 segment_0 = segment[0]
@@ -182,13 +194,15 @@ class glTextClip:
         print("segments:", self.segments)
         print()
 
-        total_bounds[1] += hhea.descent
-        total_bounds[3] += hhea.ascent
+        total_bounds[0] = left_expand
+        total_bounds[1] += lower_expand - hhea.lineGap
+        total_bounds[3] += upper_expand
         self.total_bounds = total_bounds
         rect_size = (
             int((total_bounds[2] - total_bounds[0]) * font_scale),
             int((total_bounds[3] - total_bounds[1]) * font_scale),
         )
+        print(total_bounds)
         self.rect_size = rect_size
 
     def update_text(self, font_size: int, text: str):
