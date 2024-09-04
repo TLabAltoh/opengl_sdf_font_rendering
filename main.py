@@ -67,12 +67,12 @@ def main():
         sys.argv[1],
         sys.argv[3],
         sys.argv[2],
-        text_outline_color=(0, 1, 0, 1),
-        text_outline_width=25,
+        # text_outline_color=(0, 1, 0, 1),
+        # text_outline_width=25,
         speech_box_margin=(10, 0, 10, 0),
-        speech_box_color=(1, 0, 1, 1),
-        speech_box_outline_color=(0, 0, 1, 1),
-        speech_box_outline_width=25,
+        # speech_box_color=(1, 0, 1, 1),
+        # speech_box_outline_color=(0, 0, 1, 1),
+        # speech_box_outline_width=25,
         speech_box_radius=(20, 20, 20, 20),
     )
     plt.show()
