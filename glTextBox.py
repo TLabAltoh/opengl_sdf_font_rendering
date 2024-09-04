@@ -204,32 +204,44 @@ class glTextBox:
         self.total_bounds = total_bounds
         print(total_bounds)
 
-    def update_text(self, font_size: int, text: str):
+    def set_text(self, font_size: int, text: str):
         font_scale = 16 / 1000 * float(font_size)
         self.font_size = font_size
         self.text = text
         self.font_scale = font_scale
 
-    def update_font(self, font_path: str):
+    def set_font(self, font_path: str):
         font = TTFont(font_path)
         self.font = font
         self.font_path = font_path
         removeOverlaps(self.font)
 
-    def update_speech_box(self, speech_box: list):
+    def set_speech_box(self, speech_box: list):
         self.speech_box = speech_box
 
-    def update_speech_box_margin(self, speech_box_margin: list):
+    def set_speech_box_margin(self, speech_box_margin: list):
         self.speech_box_margin = speech_box_margin
 
-    def update_speech_box_radius(self, speech_box_radius: list):
+    def set_speech_box_radius(self, speech_box_radius: list):
         self.speech_box_radius = speech_box_radius
 
-    def update_text_color(self, text_color: list):
+    def set_text_color(self, text_color: list):
         self.text_color = text_color
 
-    def update_speech_box_color(self, speech_box_color: list):
+    def set_text_outline_color(self, text_outline_color: list):
+        self.text_outline_color = text_outline_color
+
+    def set_text_outline_width(self, text_outline_width: float):
+        self.text_outline_width = text_outline_width
+
+    def set_speech_box_color(self, speech_box_color: list):
         self.speech_box_color = speech_box_color
+
+    def set_speech_box_outline_color(self, speech_box_outline_color: list):
+        self.speech_box_outline_color = speech_box_outline_color
+
+    def set_speech_box_outline_width(self, speech_box_outline_width: float):
+        self.speech_box_outline_width = speech_box_outline_width
 
     def __init__(
         self,
@@ -238,55 +250,63 @@ class glTextBox:
         font_path: str,
         font_size: int,
         text: str,
-        text_color=(1, 1, 1),
+        text_color=(1, 1, 1, 1),
+        text_outline_color=(1, 1, 1, 1),
+        text_outline_width=0.0,
         speech_box_margin=(0, 0, 0, 0),
         speech_box=None,
         speech_box_radius=(0, 0, 0, 0),
-        speech_box_color=(0, 0, 0),
+        speech_box_color=(0, 0, 0, 0),
+        speech_box_outline_color=(0, 0, 0, 0),
+        speech_box_outline_width=0.0,
     ):
         print("font_path:", font_path, "font_size:", font_size, "text:", text)
 
         self.window = window
         self.vao = vao
 
-        self.update_font(font_path)
-        self.update_text(font_size, text)
-        self.update_text_color(text_color)
-        self.update_speech_box(speech_box)
-        self.update_speech_box_margin(speech_box_margin)
-        self.update_speech_box_radius(speech_box_radius)
-        self.update_speech_box_color(speech_box_color)
+        self.set_font(font_path)
+
+        self.set_text(font_size, text)
+        self.set_text_color(text_color)
+        self.set_text_outline_color(text_outline_color)
+        self.set_text_outline_width(text_outline_width)
+
+        self.set_speech_box(speech_box)
+        self.set_speech_box_margin(speech_box_margin)
+        self.set_speech_box_radius(speech_box_radius)
+        self.set_speech_box_color(speech_box_color)
+        self.set_speech_box_outline_color(speech_box_outline_color)
+        self.set_speech_box_outline_width(speech_box_outline_width)
+
         self.update_segment()
 
     def get_speech_box(self, use_total_bounds=False):
-        if (use_total_bounds is True) and (self.total_bounds is not None):
-            speech_box = np.array(self.total_bounds) * self.font_scale
-            speech_box[0] -= self.speech_box_margin[0]
-            speech_box[1] -= self.speech_box_margin[1]
-            speech_box[2] += self.speech_box_margin[2]
-            speech_box[3] += self.speech_box_margin[3]
+        speech_box_expand = self.text_outline_width + self.speech_box_outline_width
 
-        speech_box = np.array(self.total_bounds) * self.font_scale
-        if self.speech_box is not None:
+        if (self.speech_box is not None) and (use_total_bounds is False):
             speech_box = np.array(self.speech_box)
+        else:
+            speech_box = np.array(self.total_bounds) * self.font_scale
 
-        speech_box[0] -= self.speech_box_margin[0]
-        speech_box[1] -= self.speech_box_margin[1]
-        speech_box[2] += self.speech_box_margin[2]
-        speech_box[3] += self.speech_box_margin[3]
+        speech_box[0] -= speech_box_expand + self.speech_box_margin[0]
+        speech_box[1] -= speech_box_expand + self.speech_box_margin[1]
+        speech_box[2] += speech_box_expand + self.speech_box_margin[2]
+        speech_box[3] += speech_box_expand + self.speech_box_margin[3]
         return speech_box
 
-    def get_speech_box_size(self, use_total_bounds=False):
-        speech_box = self.get_speech_box(use_total_bounds)
-        speech_box_size = (
-            int(speech_box[2] - speech_box[0]),
-            int(speech_box[3] - speech_box[1]),
+    def get_bounds_size(bounds: np.array):
+        bounds = np.array(bounds)
+        bounds_size = (
+            int(bounds[2] - bounds[0]),
+            int(bounds[3] - bounds[1]),
         )
-        return speech_box_size
+        return bounds_size
 
     def preview(self):
-        text_rect_size = self.get_speech_box_size()
-        glfw.set_window_size(self.window, text_rect_size[0], text_rect_size[1])
+        speech_box = self.get_speech_box()
+        speech_box_size = glTextBox.get_bounds_size(speech_box)
+        glfw.set_window_size(self.window, speech_box_size[0], speech_box_size[1])
         ""
         if glfw.window_should_close(self.window) == glfw.FALSE:
             self.rendering()
@@ -300,13 +320,20 @@ class glTextBox:
         program.link()
         self.program = program
 
-        self.id_bounds = glGetUniformLocation(program.handle, "bounds")
+        # fmt: off
         self.id_segment_num = glGetUniformLocation(program.handle, "segment_num")
+        self.id_speech_box = glGetUniformLocation(program.handle, "speech_box")
         self.id_radius = glGetUniformLocation(program.handle, "radius")
+
         self.id_text_color = glGetUniformLocation(program.handle, "text_color")
-        self.id_speech_box_color = glGetUniformLocation(
-            program.handle, "speech_box_color"
-        )
+        self.id_text_outline_color = glGetUniformLocation(program.handle, "text_outline_color")
+        self.id_text_outline_width = glGetUniformLocation(program.handle, "text_outline_width")
+
+        self.id_speech_box_color = glGetUniformLocation(program.handle, "speech_box_color")
+        self.id_speech_box_outline_color = glGetUniformLocation(program.handle, "speech_box_outline_color")
+        self.id_speech_box_outline_width = glGetUniformLocation(program.handle, "speech_box_outline_width")
+        # fmt: on
+
         self.buf_splines = glGenBuffers(1)
         self.buf_lines = glGenBuffers(1)
         self.buf_segments = glGenBuffers(1)
@@ -315,42 +342,32 @@ class glTextBox:
         glDeleteBuffers(3, [self.buf_splines, self.buf_lines, self.buf_segments])
         glDeleteProgram(self.program.handle)
 
+    def __glUniform4f(id, values):
+        if len(values) == 4:
+            glUniform4f(id, values[0], values[1], values[2], values[3])
+
     def rendering(self):
         self.init_gl_shader()
 
         glClear(GL_COLOR_BUFFER_BIT)
 
-        speech_box_size = self.get_speech_box_size()
         speech_box = self.get_speech_box()
+        speech_box_size = glTextBox.get_bounds_size(speech_box)
 
         self.program.use()
+        # fmt: off
         glViewport(0, 0, speech_box_size[0], speech_box_size[1])
-        glUniform4f(
-            self.id_bounds,
-            speech_box[0],
-            speech_box[1],
-            speech_box[2],
-            speech_box[3],
-        )
-        glUniform4f(
-            self.id_radius,
-            self.speech_box_radius[0],
-            self.speech_box_radius[1],
-            self.speech_box_radius[2],
-            self.speech_box_radius[3],
-        )
-        glUniform3f(
-            self.id_text_color,
-            self.text_color[0],
-            self.text_color[1],
-            self.text_color[2],
-        )
-        glUniform3f(
-            self.id_speech_box_color,
-            self.speech_box_color[0],
-            self.speech_box_color[1],
-            self.speech_box_color[2],
-        )
+        glTextBox.__glUniform4f(self.id_speech_box, speech_box)
+        glTextBox.__glUniform4f(self.id_radius, self.speech_box_radius)
+
+        glTextBox.__glUniform4f(self.id_text_color, self.text_color)
+        glTextBox.__glUniform4f(self.id_text_outline_color, self.text_outline_color)
+        glUniform1f(self.id_text_outline_width, self.text_outline_width)
+
+        glTextBox.__glUniform4f(self.id_speech_box_color, self.speech_box_color)
+        glTextBox.__glUniform4f(self.id_speech_box_outline_color, self.speech_box_outline_color)
+        glUniform1f(self.id_speech_box_outline_width, self.speech_box_outline_width)
+        # fmt: on
 
         if len(self.splines) > 0:
             data = np.array(self.splines, dtype=GLfloat) * self.font_scale

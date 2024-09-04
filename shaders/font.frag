@@ -24,10 +24,16 @@ layout(std430, binding = 2)readonly buffer SEG_INDEX {
 };
 
 uniform int segment_num;
-uniform vec4 bounds;
+uniform vec4 speech_box;
 uniform vec4 radius;
-uniform vec3 text_color;
-uniform vec3 speech_box_color;
+
+uniform vec4 text_color;
+uniform vec4 text_outline_color;
+uniform float text_outline_width;
+
+uniform vec4 speech_box_color;
+uniform vec4 speech_box_outline_color;
+uniform float speech_box_outline_width;
 
 float sdRoundedBox(in vec2 p, in vec2 b, in vec4 r) {
     r.xy = (p.x > 0.0) ? r.xy : r.zw;
@@ -125,14 +131,12 @@ float windingSign(vec2 p, vec2 a, vec2 b) {
 }
 
 void main() {
-    float text_dist = (bounds.w - bounds.y) + (bounds.z - bounds.x), tmp, winding = 1.0;
+    float text_dist = (speech_box.w - speech_box.y) + (speech_box.z - speech_box.x), tmp, winding = 1.0;
     int idx, seg_idx;
     
-    vec2 bounds_size = vec2(bounds.z - bounds.x, bounds.w - bounds.y);
-    
     vec2 text_sampling_pos;
-    text_sampling_pos.x = (1.0 - uv.x) * bounds.x + uv.x * bounds.z;
-    text_sampling_pos.y = (1.0 - uv.y) * bounds.y + uv.y * bounds.w;
+    text_sampling_pos.x = (1.0 - uv.x) * speech_box.x + uv.x * speech_box.z;
+    text_sampling_pos.y = (1.0 - uv.y) * speech_box.y + uv.y * speech_box.w;
     
     for(seg_idx = 0; seg_idx < segment_num; seg_idx ++ ) {
         segment seg = segments[seg_idx];
@@ -176,13 +180,23 @@ void main() {
     text_dist *= winding;
     float text_delta = fwidth(text_dist) * 0.5;
     float text_alpha = 1-smoothstep(-text_delta + EXPAND - BLUR, text_delta + EXPAND, text_dist);
-    vec4 out_text_color = vec4(text_color, 1) * text_alpha;
+    float text_outline_alpha = 1-smoothstep(text_outline_width + -text_delta + EXPAND - BLUR, text_outline_width + text_delta + EXPAND, text_dist);
     
-    vec2 speech_box_sampling_pos = (uv - 0.5) * bounds_size;
-    float speech_box_dist = sdRoundedBox(speech_box_sampling_pos, bounds_size * 0.5, radius);
+    vec4 out_text_color = vec4(text_color.rgb, 1) * text_color.a;
+    vec4 out_text_outline_color = vec4(text_outline_color.rgb, 1) * text_outline_color.a;
+    out_text_color = mix(out_text_outline_color, out_text_color, text_alpha) * text_outline_alpha;
+    
+    vec2 speech_box_size = vec2(speech_box.z - speech_box.x, speech_box.w - speech_box.y);
+    vec2 inner_speech_box_size = speech_box_size - 2 * speech_box_outline_width;
+    vec2 speech_box_sampling_pos = (uv - 0.5) * speech_box_size;
+    float speech_box_dist = sdRoundedBox(speech_box_sampling_pos, inner_speech_box_size * 0.5, radius);
     float speech_box_delta = fwidth(speech_box_dist) * 0.5;
     float speech_box_alpha = 1-smoothstep(-speech_box_delta, speech_box_delta, speech_box_dist);
-    vec4 out_speech_box_color = vec4(speech_box_color, 1) * speech_box_alpha * (1.0 - text_alpha);
+    float speech_box_outline_alpha = 1-smoothstep(speech_box_outline_width + -speech_box_delta, speech_box_outline_width + speech_box_delta, speech_box_dist);
     
-    out_color = out_text_color + out_speech_box_color;
+    vec4 out_speech_box_color = vec4(speech_box_color.rgb, 1) * speech_box_color.a;
+    vec4 out_speech_box_outline_color = vec4(speech_box_outline_color.rgb, 1) * speech_box_outline_color.a;
+    out_speech_box_color = mix(out_speech_box_outline_color, out_speech_box_color, speech_box_alpha) * speech_box_outline_alpha;
+    
+    out_color = out_text_color + out_speech_box_color * out_speech_box_color.a * (1.0 - out_text_color.a);
 }
