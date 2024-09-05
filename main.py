@@ -74,7 +74,7 @@ def main():
         # speech_box_outline_width=25,
         # speech_box_radius=(20, 20, 20, 20),
         speech_box_margin=(50, 0, 50, 0),
-        # blur=(100, 100, 100, 100),
+        # blur=(50, 50, 50, 50),
         # expand=(50, 50, 50, 50),
     )
     plt.show()

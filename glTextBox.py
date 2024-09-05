@@ -58,7 +58,6 @@ class glTextBox:
 
         for col_idx, char in enumerate(text):
 
-            # fmt: off
             if char == "\n":
                 row_idx += 1
                 offset_x = 0
@@ -66,7 +65,13 @@ class glTextBox:
                 total_bounds[1] -= line_height
                 lower_expand = hhea.descent
                 continue
-            # fmt: on
+
+            if char == " ":
+                if col_idx == 0:
+                    offset_x = 0
+                offset_x += glyph.width
+                total_bounds[2] = max(offset_x, total_bounds[2])
+                continue
 
             glyph = self.get_glyph(font, char)
             # fmt: off
