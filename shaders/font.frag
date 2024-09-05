@@ -26,6 +26,7 @@ layout(std430, binding = 2)readonly buffer SEG_INDEX {
 uniform int segment_num;
 uniform vec4 speech_box;
 uniform vec4 radius;
+uniform bool map_pixels;
 
 uniform vec4 text_color;
 uniform vec4 text_outline_color;
@@ -199,4 +200,8 @@ void main() {
     out_speech_box_color = mix(out_speech_box_outline_color, out_speech_box_color, speech_box_alpha) * speech_box_outline_alpha;
     
     out_color = out_text_color + out_speech_box_color * out_speech_box_color.a * (1.0 - out_text_color.a);
+    
+    if (map_pixels &&(out_color.a > 0.0)) {
+        out_color.rgb = out_color.rgb / out_color.a;
+    }
 }

@@ -73,13 +73,21 @@ def main():
         # speech_box_color=(1, 0, 1, 1),
         # speech_box_outline_color=(0, 0, 1, 1),
         # speech_box_outline_width=25,
-        speech_box_radius=(20, 20, 20, 20),
+        # speech_box_radius=(20, 20, 20, 20),
     )
     plt.show()
     glfw.show_window(window)
     while glfw.window_should_close(window) == glfw.FALSE:
         gl_text_box.preview()
         glfw.wait_events()
+    # if glfw.window_should_close(window) == glfw.FALSE:
+    #     import PIL.Image as Image
+
+    #     size, buf = gl_text_box.preview(True)
+    #     if buf.size > 0:
+    #         image = Image.frombytes("RGBA", size, buf.tobytes(), "raw")
+    #         image.save("output.png")
+
     deinit_gl()
     ""
 

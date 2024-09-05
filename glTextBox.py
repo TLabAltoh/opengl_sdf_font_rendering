@@ -303,15 +303,18 @@ class glTextBox:
         )
         return bounds_size
 
-    def preview(self):
+    def preview(self, map_pixels=False):
         speech_box = self.get_speech_box()
         speech_box_size = glTextBox.get_bounds_size(speech_box)
         glfw.set_window_size(self.window, speech_box_size[0], speech_box_size[1])
         ""
+        buf = np.empty(0, dtype="uint8")
+        size = (0, 0)
         if glfw.window_should_close(self.window) == glfw.FALSE:
-            self.rendering()
+            size, buf = self.rendering(map_pixels)
             glfw.swap_buffers(self.window)
         ""
+        return size, buf
 
     def init_gl_shader(self):
         program = Shader()
@@ -324,6 +327,8 @@ class glTextBox:
         self.id_segment_num = glGetUniformLocation(program.handle, "segment_num")
         self.id_speech_box = glGetUniformLocation(program.handle, "speech_box")
         self.id_radius = glGetUniformLocation(program.handle, "radius")
+
+        self.id_map_pixels = glGetUniformLocation(program.handle, "map_pixels")
 
         self.id_text_color = glGetUniformLocation(program.handle, "text_color")
         self.id_text_outline_color = glGetUniformLocation(program.handle, "text_outline_color")
@@ -346,7 +351,7 @@ class glTextBox:
         if len(values) == 4:
             glUniform4f(id, values[0], values[1], values[2], values[3])
 
-    def rendering(self):
+    def rendering(self, map_pixels=False):
         self.init_gl_shader()
 
         glClear(GL_COLOR_BUFFER_BIT)
@@ -357,6 +362,7 @@ class glTextBox:
         self.program.use()
         # fmt: off
         glViewport(0, 0, speech_box_size[0], speech_box_size[1])
+        glUniform1i(self.id_map_pixels, map_pixels)
         glTextBox.__glUniform4f(self.id_speech_box, speech_box)
         glTextBox.__glUniform4f(self.id_radius, self.speech_box_radius)
 
@@ -411,4 +417,20 @@ class glTextBox:
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
         self.program.unuse()
 
+        if map_pixels:
+            buf = np.empty(speech_box_size[0] * speech_box_size[1] * 4, "uint8")
+            glReadPixels(
+                0,
+                0,
+                speech_box_size[0],
+                speech_box_size[1],
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                buf,
+            )
+        else:
+            buf = np.empty(0, "uint8")
+
         self.deinit_gl_shader()
+
+        return speech_box_size, buf
