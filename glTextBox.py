@@ -243,6 +243,12 @@ class glTextBox:
     def set_speech_box_outline_width(self, speech_box_outline_width: float):
         self.speech_box_outline_width = speech_box_outline_width
 
+    def set_blur(self, blur: list):
+        self.blur = blur
+
+    def set_expand(self, expand: list):
+        self.expand = expand
+
     def __init__(
         self,
         window,
@@ -253,12 +259,14 @@ class glTextBox:
         text_color=(1, 1, 1, 1),
         text_outline_color=(1, 1, 1, 1),
         text_outline_width=0.0,
-        speech_box_margin=(0, 0, 0, 0),
         speech_box=None,
         speech_box_radius=(0, 0, 0, 0),
         speech_box_color=(0, 0, 0, 0),
         speech_box_outline_color=(0, 0, 0, 0),
         speech_box_outline_width=0.0,
+        speech_box_margin=(0, 0, 0, 0),
+        blur=(0, 0, 0, 0),
+        expand=(0, 0, 0, 0),
     ):
         print("font_path:", font_path, "font_size:", font_size, "text:", text)
 
@@ -278,6 +286,9 @@ class glTextBox:
         self.set_speech_box_color(speech_box_color)
         self.set_speech_box_outline_color(speech_box_outline_color)
         self.set_speech_box_outline_width(speech_box_outline_width)
+
+        self.set_blur(blur)
+        self.set_expand(expand)
 
         self.update_segment()
 
@@ -327,6 +338,8 @@ class glTextBox:
         self.id_segment_num = glGetUniformLocation(program.handle, "segment_num")
         self.id_speech_box = glGetUniformLocation(program.handle, "speech_box")
         self.id_radius = glGetUniformLocation(program.handle, "radius")
+        self.id_blur = glGetUniformLocation(program.handle, "blur")
+        self.id_expand = glGetUniformLocation(program.handle, "expand")
 
         self.id_map_pixels = glGetUniformLocation(program.handle, "map_pixels")
 
@@ -363,6 +376,10 @@ class glTextBox:
         # fmt: off
         glViewport(0, 0, speech_box_size[0], speech_box_size[1])
         glUniform1i(self.id_map_pixels, map_pixels)
+
+        glTextBox.__glUniform4f(self.id_blur, self.blur)
+        glTextBox.__glUniform4f(self.id_expand, self.expand)
+
         glTextBox.__glUniform4f(self.id_speech_box, speech_box)
         glTextBox.__glUniform4f(self.id_radius, self.speech_box_radius)
 

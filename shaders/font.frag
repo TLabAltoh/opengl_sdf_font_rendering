@@ -26,6 +26,8 @@ layout(std430, binding = 2)readonly buffer SEG_INDEX {
 uniform int segment_num;
 uniform vec4 speech_box;
 uniform vec4 radius;
+uniform vec4 blur;
+uniform vec4 expand;
 uniform bool map_pixels;
 
 uniform vec4 text_color;
@@ -35,6 +37,10 @@ uniform float text_outline_width;
 uniform vec4 speech_box_color;
 uniform vec4 speech_box_outline_color;
 uniform float speech_box_outline_width;
+
+float saturate(float a, float b, float x) {
+    return clamp((x - a) / (b - a), 0.0, 1.0);
+}
 
 float sdRoundedBox(in vec2 p, in vec2 b, in vec4 r) {
     r.xy = (p.x > 0.0) ? r.xy : r.zw;
@@ -175,13 +181,10 @@ void main() {
         }
     }
     
-    #define BLUR 0
-    #define EXPAND 0
-    
     text_dist *= winding;
     float text_delta = fwidth(text_dist) * 0.5;
-    float text_alpha = 1-smoothstep(-text_delta + EXPAND - BLUR, text_delta + EXPAND, text_dist);
-    float text_outline_alpha = 1-smoothstep(text_outline_width + -text_delta + EXPAND - BLUR, text_outline_width + text_delta + EXPAND, text_dist);
+    float text_alpha = 1-saturate(-text_delta + expand.x - blur.x, text_delta + expand.x, text_dist);
+    float text_outline_alpha = 1-saturate(text_outline_width + -text_delta + expand.y - blur.y, text_outline_width + text_delta + expand.y, text_dist);
     
     vec4 out_text_color = vec4(text_color.rgb, 1) * text_color.a;
     vec4 out_text_outline_color = vec4(text_outline_color.rgb, 1) * text_outline_color.a;
@@ -192,8 +195,8 @@ void main() {
     vec2 speech_box_sampling_pos = (uv - 0.5) * speech_box_size;
     float speech_box_dist = sdRoundedBox(speech_box_sampling_pos, inner_speech_box_size * 0.5, radius);
     float speech_box_delta = fwidth(speech_box_dist) * 0.5;
-    float speech_box_alpha = 1-smoothstep(-speech_box_delta, speech_box_delta, speech_box_dist);
-    float speech_box_outline_alpha = 1-smoothstep(speech_box_outline_width + -speech_box_delta, speech_box_outline_width + speech_box_delta, speech_box_dist);
+    float speech_box_alpha = 1-saturate(-speech_box_delta + expand.z - blur.z, speech_box_delta + expand.z, speech_box_dist);
+    float speech_box_outline_alpha = 1-saturate(speech_box_outline_width + -speech_box_delta + expand.w - blur.w, speech_box_outline_width + speech_box_delta + expand.w, speech_box_dist);
     
     vec4 out_speech_box_color = vec4(speech_box_color.rgb, 1) * speech_box_color.a;
     vec4 out_speech_box_outline_color = vec4(speech_box_outline_color.rgb, 1) * speech_box_outline_color.a;

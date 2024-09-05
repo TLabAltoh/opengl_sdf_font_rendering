@@ -69,11 +69,13 @@ def main():
         sys.argv[2],
         # text_outline_color=(0, 1, 0, 1),
         # text_outline_width=25,
-        speech_box_margin=(10, 0, 10, 0),
         # speech_box_color=(1, 0, 1, 1),
         # speech_box_outline_color=(0, 0, 1, 1),
         # speech_box_outline_width=25,
         # speech_box_radius=(20, 20, 20, 20),
+        speech_box_margin=(50, 0, 50, 0),
+        # blur=(100, 100, 100, 100),
+        # expand=(50, 50, 50, 50),
     )
     plt.show()
     glfw.show_window(window)
