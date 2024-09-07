@@ -122,7 +122,6 @@ class glTextBox:
                     continue
 
                 if segment_1[len(segment_1) - 1] is None:
-                    is_prev_none = True
                     if start_point is None:
                         tmp_0 = segment_1[0]
                         tmp_1 = segment_1[len(segment_1) - 2]
