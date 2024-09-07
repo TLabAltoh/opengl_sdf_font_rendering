@@ -96,9 +96,9 @@ class glTextBox:
             for segment in recording_pen.value:
                 segment_0 = segment[0]
                 segment_1 = segment[1]
-                print()
                 print("segment[0]:", segment_0)
                 print("segment[1]:", segment_1)
+                print()
 
                 if segment_0 == "closePath":
                     """"""
@@ -118,11 +118,28 @@ class glTextBox:
                     self.segments = self.segments + prev_seg
                     self.points.clear()
 
+                    start_point = None
+                    continue
+
+                if segment_1[len(segment_1) - 1] is None:
+                    is_prev_none = True
+                    if start_point is None:
+                        tmp_0 = segment_1[0]
+                        tmp_1 = segment_1[len(segment_1) - 2]
+                        start_point = tuple(
+                            [(tmp_0[0] + tmp_1[0]) * 0.5, (tmp_0[1] + tmp_1[1]) * 0.5]
+                        )
+                    self.points.append(
+                        (start_point[0] + offset_x, start_point[1] + offset_y)
+                    )
+                    segment_1 = tuple(list(segment_1[:-1]) + [start_point])
+
                 if segment_0 == "moveTo":  # starting point
                     start_point = segment_1[0]
                     self.points.append(
-                        (segment_1[0][0] + offset_x, segment_1[0][1] + offset_y)
+                        (start_point[0] + offset_x, start_point[1] + offset_y)
                     )
+                    continue
 
                 if segment_0 == "lineTo":
                     self.points.append(
@@ -130,6 +147,7 @@ class glTextBox:
                     )
                     self.lines = self.lines + self.points
                     self.plot()
+                    continue
 
                 if segment_0 == "qCurveTo":
                     if len(segment_1) == 1:  # line
@@ -137,6 +155,7 @@ class glTextBox:
                             self.points.append((p[0] + offset_x, p[1] + offset_y))
                             self.lines = self.lines + self.points
                             self.plot()
+                        continue
 
                     if len(segment_1) >= 2:  # quadratic-bezier
                         decompose = decomposeQuadraticSegment(segment_1)
@@ -146,6 +165,7 @@ class glTextBox:
                                 self.points.append((p[0] + offset_x, p[1] + offset_y))
                             self.splines = self.splines + self.points
                             self.plot()
+                        continue
 
                 if segment_0 == "curveTo":
                     if len(segment_1) == 1:  # line
@@ -153,12 +173,14 @@ class glTextBox:
                             self.points.append((p[0] + offset_x, p[1] + offset_y))
                             self.lines = self.lines + self.points
                             self.plot()
+                        continue
 
                     if len(segment_1) == 2:  # quadratic-bezier
                         for p in segment_1:
                             self.points.append((p[0] + offset_x, p[1] + offset_y))
                             self.splines = self.splines + self.points
                             self.plot()
+                        continue
 
                     if len(segment_1) >= 3:  # cubic-bezier
                         decompose = decomposeSuperBezierSegment(segment_1)
@@ -182,6 +204,7 @@ class glTextBox:
                                 self.splines = self.splines + self.points
                                 self.plot()
                             cu.clear()
+                        continue
 
             if col_idx == 0:
                 offset_x = bounds[0]
