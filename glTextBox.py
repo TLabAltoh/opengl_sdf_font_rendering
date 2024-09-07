@@ -51,10 +51,10 @@ class glTextBox:
         self.segments = []
         prev_seg = [0, 0, 0, 0]
 
-        text += "\n"
-        text += "aiuoe"
-        text += "\n"
-        text += "hello"
+        # text += "\n"
+        # text += "aiuoe"
+        # text += "\n"
+        # text += "hello"
 
         for col_idx, char in enumerate(text):
 
