@@ -51,10 +51,10 @@ class glTextBox:
         self.segments = []
         prev_seg = [0, 0, 0, 0]
 
-        # text += "\n"
-        # text += "aiuoe"
-        # text += "\n"
-        # text += "hello"
+        text += "\n"
+        text += "aiuoe"
+        text += "\n"
+        text += "hello"
 
         for col_idx, char in enumerate(text):
 
@@ -66,14 +66,8 @@ class glTextBox:
                 lower_expand = hhea.descent
                 continue
 
-            if char == " ":
-                if col_idx == 0:
-                    offset_x = 0
-                offset_x += glyph.width
-                total_bounds[2] = max(offset_x, total_bounds[2])
-                continue
-
             glyph = self.get_glyph(font, char)
+
             # fmt: off
             print(
                 "lsb:",         glyph.lsb,
@@ -92,6 +86,13 @@ class glTextBox:
 
             bounds = bounds_pen.bounds
             print("bounds:", bounds)
+
+            if bounds == None:  # maybe char is white space
+                if col_idx == 0:
+                    offset_x = 0
+                offset_x += glyph.width
+                total_bounds[2] = max(offset_x, total_bounds[2])
+                continue
 
             for segment in recording_pen.value:
                 segment_0 = segment[0]
