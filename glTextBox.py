@@ -3,6 +3,7 @@ from utils.shader import *
 from utils.glfw import *
 from fontTools.ttLib import TTFont
 from fontTools.ttLib.removeOverlaps import removeOverlaps
+from fontTools.misc.transform import *
 from fontTools.cu2qu.ufo import *
 from fontTools.cu2qu.cu2qu import *
 from fontTools.pens.basePen import *
@@ -24,7 +25,6 @@ class glTextBox:
         if len(self.points) > 0:
             x, y = np.array(self.points).transpose() * self.font_scale
             plt.plot(x, y, marker=".")
-            self.points = self.points[-1:]
 
     def update_segment(self):
 
@@ -32,10 +32,24 @@ class glTextBox:
         plt.axes().set_aspect("equal")
 
         font = self.font
+        font_emoji = self.font_emoji
         text = self.text
         total_bounds = [0, 0, 0, 0]
 
-        font.getGlyphSet()
+        if font != None:
+            font_glyph_set = font.getGlyphSet()
+            font_cmap = font.getBestCmap()
+        else:
+            font_glyph_set = None
+            font_cmap = None
+
+        if font_emoji != None:
+            font_emoji_glyph_set = font_emoji.getGlyphSet()
+            font_emoji_cmap = font_emoji.getBestCmap()
+        else:
+            font_emoji_glyph_set = None
+            font_emoji_cmap = None
+
         hhea = font.tables["hhea"]
         line_height = hhea.ascent - hhea.descent + hhea.lineGap
 
@@ -51,13 +65,7 @@ class glTextBox:
         self.segments = []
         prev_seg = [0, 0, 0, 0]
 
-        # text += "\n"
-        # text += "aiuoe"
-        # text += "\n"
-        # text += "hello"
-
         for col_idx, char in enumerate(text):
-
             if char == "\n":
                 row_idx += 1
                 offset_x = 0
@@ -66,7 +74,19 @@ class glTextBox:
                 lower_expand = hhea.descent
                 continue
 
-            glyph = self.get_glyph(font, char)
+            if ord(char) in font_cmap:
+                tmp_font = font
+                tmp_font_glyph_set = font_glyph_set
+                tmp_scale = 1.0
+            else:
+                tmp_font = font_emoji
+                tmp_font_glyph_set = font_emoji_glyph_set
+                tmp_scale = self.font_emoji_size / self.font_size
+
+            tmp_t = Transform()
+            tmp_t = tmp_t.scale(tmp_scale)
+
+            glyph = self.get_glyph(tmp_font, char)
 
             # fmt: off
             print(
@@ -79,20 +99,21 @@ class glTextBox:
             print()
 
             recording_pen = RecordingPen()
-            bounds_pen = BoundsPen(font.getGlyphSet())
+            bounds_pen = BoundsPen(tmp_font_glyph_set)
 
             glyph.draw(recording_pen)
             glyph.draw(bounds_pen)
 
-            bounds = bounds_pen.bounds
-            print("bounds:", bounds)
-
-            if bounds == None:  # maybe char is white space
+            if bounds_pen.bounds == None:  # maybe char is white space
                 if col_idx == 0:
                     offset_x = 0
-                offset_x += glyph.width
+                offset_x += glyph.width * tmp_scale
                 total_bounds[2] = max(offset_x, total_bounds[2])
                 continue
+
+            bounds = [i * tmp_scale for i in list(bounds_pen.bounds)]
+            bounds = tuple(bounds)
+            print("bounds:", bounds)
 
             for segment in recording_pen.value:
                 segment_0 = segment[0]
@@ -109,6 +130,7 @@ class glTextBox:
                         )
                         self.lines = self.lines + self.points
                         self.plot()
+                        self.points = self.points[-1:]
                     ""
                     prev_seg = [
                         prev_seg[1],
@@ -118,7 +140,6 @@ class glTextBox:
                     ]
                     self.segments = self.segments + prev_seg
                     self.points.clear()
-
                     start_point = None
                     continue
 
@@ -127,17 +148,26 @@ class glTextBox:
                         tmp_0 = segment_1[0]
                         tmp_1 = segment_1[len(segment_1) - 2]
                         start_point = tuple(
-                            [(tmp_0[0] + tmp_1[0]) * 0.5, (tmp_0[1] + tmp_1[1]) * 0.5]
+                            [
+                                (tmp_0[0] + tmp_1[0]) * 0.5,
+                                (tmp_0[1] + tmp_1[1]) * 0.5,
+                            ]
                         )
+                    segment_1 = tuple(list(segment_1[:-1]) + [start_point])
+
+                    start_point = tuple(
+                        (start_point[0] * tmp_scale, start_point[1] * tmp_scale)
+                    )
                     self.points.append(
                         (start_point[0] + offset_x, start_point[1] + offset_y)
                     )
-                    segment_1 = tuple(list(segment_1[:-1]) + [start_point])
+
+                segment_1 = tmp_t.transformPoints(segment_1)
 
                 if segment_0 == "moveTo":  # starting point
                     start_point = segment_1[0]
                     self.points.append(
-                        (start_point[0] + offset_x, start_point[1] + offset_y)
+                        (segment_1[0][0] + offset_x, segment_1[0][1] + offset_y)
                     )
                     continue
 
@@ -147,6 +177,7 @@ class glTextBox:
                     )
                     self.lines = self.lines + self.points
                     self.plot()
+                    self.points = self.points[-1:]
                     continue
 
                 if segment_0 == "qCurveTo":
@@ -155,16 +186,17 @@ class glTextBox:
                             self.points.append((p[0] + offset_x, p[1] + offset_y))
                             self.lines = self.lines + self.points
                             self.plot()
+                            self.points = self.points[-1:]
                         continue
 
                     if len(segment_1) >= 2:  # quadratic-bezier
                         decompose = decomposeQuadraticSegment(segment_1)
-                        print("decompose:", decompose)
                         for d in decompose:
                             for p in d:
                                 self.points.append((p[0] + offset_x, p[1] + offset_y))
                             self.splines = self.splines + self.points
                             self.plot()
+                            self.points = self.points[-1:]
                         continue
 
                 if segment_0 == "curveTo":
@@ -173,6 +205,7 @@ class glTextBox:
                             self.points.append((p[0] + offset_x, p[1] + offset_y))
                             self.lines = self.lines + self.points
                             self.plot()
+                            self.points = self.points[-1:]
                         continue
 
                     if len(segment_1) == 2:  # quadratic-bezier
@@ -180,11 +213,11 @@ class glTextBox:
                             self.points.append((p[0] + offset_x, p[1] + offset_y))
                             self.splines = self.splines + self.points
                             self.plot()
+                            self.points = self.points[-1:]
                         continue
 
                     if len(segment_1) >= 3:  # cubic-bezier
                         decompose = decomposeSuperBezierSegment(segment_1)
-                        print("decompose:", decompose)
                         cu = [
                             [
                                 self.points[0][0] - offset_x,
@@ -203,19 +236,20 @@ class glTextBox:
                                     )
                                 self.splines = self.splines + self.points
                                 self.plot()
+                                self.points = self.points[-1:]
                             cu.clear()
                         continue
 
             if col_idx == 0:
                 offset_x = bounds[0]
-                left_expand = min(left_expand, glyph.lsb)
+                left_expand = min(left_expand, glyph.lsb * tmp_scale)
 
             if row_idx == 0:
                 upper_expand = max(upper_expand, bounds[3])
 
             lower_expand = min(lower_expand, bounds[1])
 
-            offset_x += glyph.width
+            offset_x += glyph.width * tmp_scale
             total_bounds[2] = max(offset_x, total_bounds[2])
 
         print()
@@ -230,19 +264,45 @@ class glTextBox:
         total_bounds[1] += lower_expand - hhea.lineGap
         total_bounds[3] += upper_expand
         self.total_bounds = total_bounds
-        print(total_bounds)
 
-    def set_text(self, font_size: int, text: str):
-        font_scale = 16 / 1000 * float(font_size)
-        self.font_size = font_size
+    def set_text(self, text: str):
         self.text = text
-        self.font_scale = font_scale
 
-    def set_font(self, font_path: str):
-        font = TTFont(font_path)
-        self.font = font
-        self.font_path = font_path
-        removeOverlaps(self.font)
+    def set_font(self, font_path: str, font_emoji_path: str):
+        if font_path != None:
+            font = TTFont(font_path)
+            self.font = font
+            self.font_path = font_path
+            removeOverlaps(self.font)
+        else:
+            self.font = None
+            self.font_path = None
+
+        if font_emoji_path != None:
+            font_emoji = TTFont(font_emoji_path)
+            self.font_emoji = font_emoji
+            self.font_emoji_path = font_emoji_path
+            removeOverlaps(self.font_emoji)
+        else:
+            self.font_emoji = None
+            self.font_emoji_path = None
+
+    def set_font_size(self, font_size: int, font_emoji_size: int):
+        if font_size != None:
+            font_scale = 16 / 1000 * float(font_size)
+            self.font_size = font_size
+            self.font_scale = font_scale
+        else:
+            self.font_size = None
+            self.font_scale = None
+
+        if font_emoji_size != None:
+            font_emoji_scale = 16 / 1000 * float(font_emoji_size)
+            self.font_emoji_size = font_emoji_size
+            self.font_emoji_scale = font_emoji_scale
+        else:
+            self.font_emoji_size = None
+            self.font_emoji_scale = None
 
     def set_speech_box(self, speech_box: list):
         self.speech_box = speech_box
@@ -282,7 +342,9 @@ class glTextBox:
         window,
         vao,
         font_path: str,
+        font_emoji_path: str,
         font_size: int,
+        font_emoji_size: int,
         text: str,
         text_color=(1, 1, 1, 1),
         text_outline_color=(1, 1, 1, 1),
@@ -296,14 +358,13 @@ class glTextBox:
         blur=(0, 0, 0, 0),
         expand=(0, 0, 0, 0),
     ):
-        print("font_path:", font_path, "font_size:", font_size, "text:", text)
-
         self.window = window
         self.vao = vao
 
-        self.set_font(font_path)
+        self.set_font(font_path, font_emoji_path)
+        self.set_font_size(font_size, font_emoji_size)
 
-        self.set_text(font_size, text)
+        self.set_text(text)
         self.set_text_color(text_color)
         self.set_text_outline_color(text_outline_color)
         self.set_text_outline_width(text_outline_width)
@@ -342,17 +403,27 @@ class glTextBox:
         )
         return bounds_size
 
-    def preview(self, map_pixels=False):
+    def get_image_buffer(self):
         speech_box = self.get_speech_box()
         speech_box_size = glTextBox.get_bounds_size(speech_box)
         glfw.set_window_size(self.window, speech_box_size[0], speech_box_size[1])
-        ""
+        buf = np.empty(0, dtype="uint8")
+        size = (0, 0)
+        if glfw.window_should_close(self.window) == glfw.FALSE:
+            size, buf = self.rendering(True)
+            glfw.swap_buffers(self.window)
+
+        return buf.reshape([size[1], size[0], 4])
+
+    def preview(self, map_pixels):
+        speech_box = self.get_speech_box()
+        speech_box_size = glTextBox.get_bounds_size(speech_box)
+        glfw.set_window_size(self.window, speech_box_size[0], speech_box_size[1])
         buf = np.empty(0, dtype="uint8")
         size = (0, 0)
         if glfw.window_should_close(self.window) == glfw.FALSE:
             size, buf = self.rendering(map_pixels)
             glfw.swap_buffers(self.window)
-        ""
         return size, buf
 
     def init_gl_shader(self):

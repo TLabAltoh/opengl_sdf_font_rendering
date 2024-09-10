@@ -64,9 +64,11 @@ def main():
     gl_text_box = glTextBox(
         window,
         vao,
-        sys.argv[1],
-        sys.argv[3],
-        sys.argv[2],
+        font_path=sys.argv[1],
+        font_emoji_path=None,
+        font_size=sys.argv[3],
+        font_emoji_size=None,
+        text=sys.argv[2],
         # text_outline_color=(0, 1, 0, 1),
         # text_outline_width=25,
         # speech_box_color=(1, 0, 1, 1),
@@ -80,7 +82,7 @@ def main():
     plt.show()
     glfw.show_window(window)
     while glfw.window_should_close(window) == glfw.FALSE:
-        gl_text_box.preview()
+        gl_text_box.preview(False)
         glfw.wait_events()
     # if glfw.window_should_close(window) == glfw.FALSE:
     #     import PIL.Image as Image
