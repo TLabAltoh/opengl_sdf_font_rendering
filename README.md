@@ -64,3 +64,6 @@ cd opengl_sdf_font_rendering
 python main.py %{FONT_PATH} %{CHAR} %{FONT_SIZE}
 @rem ex. python main.py font.ttf A 35
 ```
+
+## TODO
+Use the dictionarized glyph buffer on the shader side to reduce the size of the gl compute buffer.
