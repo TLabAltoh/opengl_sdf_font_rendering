@@ -33,7 +33,7 @@ In this example, the approach is to [detect the edge path](https://github.com/fo
 // (render with distance ...)
 dist *= winding;
 float delta = fwidth(dist) * 0.5;
-float alpha = 1-smoothstep(-delta + EXPAND - BLUR, delta + EXPAND, dist);
+float alpha = 1-saturate(-delta + EXPAND - BLUR, delta + EXPAND, dist);
 out_color = vec4(alpha, alpha, alpha, alpha);
 ```
 
